@@ -33,7 +33,7 @@ export default function OrderCard({ order }: OrderCardProps) {
 
   return (
     <Link href={`/orders/${order.slug}`}>
-      <div className="card hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+      <div className="card hover:shadow-lg transition-shadow duration-200 cursor-pointer mb-6">
         <div className="p-6">
           <div className="flex items-start justify-between mb-4">
             <div>
