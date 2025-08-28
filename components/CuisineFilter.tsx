@@ -1,44 +1,77 @@
 'use client'
-import { useState } from 'react'
-import { CuisineType } from '@/types'
+
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Restaurant } from '@/types'
 
 interface CuisineFilterProps {
-  onFilterChange?: (cuisine: string | null) => void
+  restaurants: Restaurant[]
+  selectedCuisine: string | null
 }
 
-const cuisineTypes: { key: string; value: CuisineType }[] = [
-  { key: 'all', value: 'All' as CuisineType },
-  { key: 'american', value: 'American' },
-  { key: 'italian', value: 'Italian' },
-  { key: 'mexican', value: 'Mexican' },
-  { key: 'asian', value: 'Asian' },
-  { key: 'indian', value: 'Indian' },
-]
+export default function CuisineFilter({ restaurants, selectedCuisine }: CuisineFilterProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
-export default function CuisineFilter({ onFilterChange }: CuisineFilterProps) {
-  const [selectedCuisine, setSelectedCuisine] = useState<string>('all')
+  // Get unique cuisine types from restaurants
+  const cuisineTypes = Array.from(
+    new Set(
+      restaurants
+        .map(restaurant => restaurant.metadata?.cuisine_type?.value)
+        .filter(Boolean)
+    )
+  ).sort()
 
-  const handleFilterChange = (cuisineKey: string) => {
-    setSelectedCuisine(cuisineKey)
-    const filterValue = cuisineKey === 'all' ? null : cuisineTypes.find(c => c.key === cuisineKey)?.value || null
-    onFilterChange?.(filterValue)
+  const handleCuisineChange = (cuisine: string | null) => {
+    const params = new URLSearchParams(searchParams.toString())
+    
+    if (cuisine) {
+      params.set('cuisine', cuisine.toLowerCase())
+    } else {
+      params.delete('cuisine')
+    }
+    
+    router.push(`/?${params.toString()}`)
   }
 
   return (
-    <div className="flex flex-wrap gap-2 mb-6">
-      {cuisineTypes.map((cuisine) => (
+    <div className="mb-8">
+      <div className="flex flex-wrap gap-2 justify-center">
         <button
-          key={cuisine.key}
-          onClick={() => handleFilterChange(cuisine.key)}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
-            selectedCuisine === cuisine.key
+          onClick={() => handleCuisineChange(null)}
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            !selectedCuisine
               ? 'bg-primary text-white'
-              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          {cuisine.value}
+          All Cuisines
         </button>
-      ))}
+        
+        {cuisineTypes.map((cuisine) => (
+          <button
+            key={cuisine}
+            onClick={() => handleCuisineChange(cuisine)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              selectedCuisine?.toLowerCase() === cuisine?.toLowerCase()
+                ? 'bg-primary text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            {cuisine}
+          </button>
+        ))}
+      </div>
+      
+      {selectedCuisine && (
+        <div className="text-center mt-4">
+          <p className="text-gray-600">
+            Showing {cuisineTypes.includes(selectedCuisine) ? 
+              restaurants.filter(r => r.metadata?.cuisine_type?.value?.toLowerCase() === selectedCuisine.toLowerCase()).length 
+              : 0
+            } {selectedCuisine} restaurants
+          </p>
+        </div>
+      )}
     </div>
   )
 }
