@@ -1,84 +1,46 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Restaurant, CuisineType } from '@/types'
-
 interface CuisineFilterProps {
-  restaurants: Restaurant[]
-  onFilterChange: (filteredRestaurants: Restaurant[]) => void
+  selectedCuisine: string
+  onCuisineChange: (cuisine: string) => void
 }
 
-const cuisineTypes: CuisineType[] = ['Italian', 'Mexican', 'Asian', 'American', 'Indian']
+const cuisineTypes = [
+  { key: 'all', label: 'All Cuisines', emoji: '🍽️' },
+  { key: 'Italian', label: 'Italian', emoji: '🍝' },
+  { key: 'Mexican', label: 'Mexican', emoji: '🌮' },
+  { key: 'Asian', label: 'Asian', emoji: '🍜' },
+  { key: 'American', label: 'American', emoji: '🍔' },
+  { key: 'Indian', label: 'Indian', emoji: '🍛' },
+]
 
-export default function CuisineFilter({ restaurants, onFilterChange }: CuisineFilterProps) {
-  const [selectedCuisine, setSelectedCuisine] = useState<CuisineType | 'All'>('All')
-
-  useEffect(() => {
-    if (selectedCuisine === 'All') {
-      onFilterChange(restaurants)
-    } else {
-      const filtered = restaurants.filter(restaurant => {
-        const cuisineValue = restaurant.metadata?.cuisine_type?.value
-        return cuisineValue === selectedCuisine
-      })
-      onFilterChange(filtered)
-    }
-  }, [selectedCuisine, restaurants, onFilterChange])
-
-  // Get available cuisine types from restaurants
-  const availableCuisines = Array.from(
-    new Set(
-      restaurants
-        .map(r => r.metadata?.cuisine_type?.value)
-        .filter(Boolean)
-    )
-  ).sort()
+export default function CuisineFilter({ selectedCuisine, onCuisineChange }: CuisineFilterProps) {
+  const handleFilterClick = (cuisine: string) => {
+    // Prevent any default behavior and ensure smooth filtering
+    onCuisineChange(cuisine)
+  }
 
   return (
-    <div className="mb-8">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Filter by Cuisine</h3>
-      <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap justify-center gap-3 mb-8">
+      {cuisineTypes.map((cuisine) => (
         <button
-          onClick={() => setSelectedCuisine('All')}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-            selectedCuisine === 'All'
-              ? 'bg-primary text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          key={cuisine.key}
+          type="button"
+          onClick={() => handleFilterClick(cuisine.key)}
+          className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+            selectedCuisine === cuisine.key
+              ? 'bg-primary text-white shadow-md transform scale-105'
+              : 'bg-white text-gray-700 border border-gray-300 hover:border-primary hover:text-primary hover:shadow-md'
           }`}
+          aria-pressed={selectedCuisine === cuisine.key}
+          aria-label={`Filter by ${cuisine.label} cuisine`}
         >
-          All ({restaurants.length})
+          <span className="mr-2" role="img" aria-label={cuisine.label}>
+            {cuisine.emoji}
+          </span>
+          {cuisine.label}
         </button>
-        
-        {availableCuisines.map(cuisine => {
-          const count = restaurants.filter(r => 
-            r.metadata?.cuisine_type?.value === cuisine
-          ).length
-          
-          return (
-            <button
-              key={cuisine}
-              onClick={() => setSelectedCuisine(cuisine as CuisineType)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                selectedCuisine === cuisine
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {cuisine} ({count})
-            </button>
-          )
-        })}
-      </div>
-      
-      {selectedCuisine !== 'All' && (
-        <div className="mt-4 text-sm text-gray-600">
-          Showing {restaurants.filter(r => 
-            r.metadata?.cuisine_type?.value === selectedCuisine
-          ).length} {selectedCuisine} restaurant{restaurants.filter(r => 
-            r.metadata?.cuisine_type?.value === selectedCuisine
-          ).length !== 1 ? 's' : ''}
-        </div>
-      )}
+      ))}
     </div>
   )
 }
