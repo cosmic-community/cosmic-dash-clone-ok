@@ -30,7 +30,8 @@ export default function CuisineFilter({ restaurants, selectedCuisine }: CuisineF
       params.delete('cuisine')
     }
     
-    router.push(`/?${params.toString()}`)
+    // Use replace instead of push to prevent scroll to top and avoid history pollution
+    router.replace(`/?${params.toString()}`, { scroll: false })
   }
 
   return (
