@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Cart, CartItem } from '@/types'
-import { getCart, updateCartItemQuantity, removeFromCart, clearCart } from '@/lib/cart'
+import { getCart, updateItemQuantity, removeFromCart, clearCart } from '@/lib/cart'
 import Link from 'next/link'
 
 export default function CartPage() {
@@ -20,7 +20,7 @@ export default function CartPage() {
   }, [])
 
   const updateQuantity = (cartItemId: string, quantity: number) => {
-    const updatedCart = updateCartItemQuantity(cartItemId, quantity)
+    const updatedCart = updateItemQuantity(cartItemId, quantity)
     setCart(updatedCart)
     // Dispatch custom event to update cart button
     window.dispatchEvent(new Event('cartUpdated'))
