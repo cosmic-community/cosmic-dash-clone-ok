@@ -70,6 +70,23 @@ export interface Order extends CosmicObject {
   };
 }
 
+// Cart item interface
+export interface CartItem {
+  id: string;
+  menuItem: MenuItem;
+  quantity: number;
+  notes?: string;
+}
+
+// Cart interface
+export interface Cart {
+  items: CartItem[];
+  restaurant?: Restaurant;
+  subtotal: number;
+  deliveryFee: number;
+  total: number;
+}
+
 // Type literals for select-dropdown values (matching content model exactly)
 export type CuisineType = 'Italian' | 'Mexican' | 'Asian' | 'American' | 'Indian';
 export type MenuCategory = 'Appetizers' | 'Entrees' | 'Desserts' | 'Beverages';

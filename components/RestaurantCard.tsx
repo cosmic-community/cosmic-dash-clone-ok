@@ -14,7 +14,7 @@ export default function RestaurantCard({ restaurant }: RestaurantCardProps) {
 
   return (
     <Link href={`/restaurants/${restaurant.slug}`} className="group block">
-      <div className="card hover:shadow-lg transition-all duration-200 group-hover:scale-105 overflow-hidden">
+      <div className="card hover:shadow-lg transition-all duration-200 overflow-hidden">
         <div className="relative">
           {featuredImage ? (
             <img
