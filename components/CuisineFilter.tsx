@@ -50,7 +50,7 @@ export default function CuisineFilter({ restaurants, selectedCuisine }: CuisineF
         {cuisineTypes.map((cuisine) => (
           <button
             key={cuisine}
-            onClick={() => handleCuisineChange(cuisine as string)}
+            onClick={() => handleCuisineChange(cuisine)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
               selectedCuisine?.toLowerCase() === cuisine?.toLowerCase()
                 ? 'bg-primary text-white'
@@ -65,7 +65,7 @@ export default function CuisineFilter({ restaurants, selectedCuisine }: CuisineF
       {selectedCuisine && (
         <div className="text-center mt-4">
           <p className="text-gray-600">
-            Showing {cuisineTypes.some(cuisine => cuisine.toLowerCase() === selectedCuisine.toLowerCase()) ? 
+            Showing {cuisineTypes.some(cuisine => cuisine?.toLowerCase() === selectedCuisine.toLowerCase()) ? 
               restaurants.filter(r => r.metadata?.cuisine_type?.value?.toLowerCase() === selectedCuisine.toLowerCase()).length 
               : 0
             } {selectedCuisine} restaurants
