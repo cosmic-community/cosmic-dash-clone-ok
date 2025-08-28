@@ -1,45 +1,52 @@
-import { CartItem, Cart, MenuItem, Restaurant } from '@/types'
+import { MenuItem, Restaurant, Cart, CartItem } from '@/types'
 
+// Cart storage key
 const CART_STORAGE_KEY = 'doordash-cart'
+
+// Initialize empty cart
+function createEmptyCart(): Cart {
+  return {
+    items: [],
+    restaurant: undefined,
+    subtotal: 0,
+    deliveryFee: 0,
+    total: 0
+  }
+}
 
 // Get cart from localStorage
 export function getCart(): Cart {
   if (typeof window === 'undefined') {
-    return {
-      items: [],
-      subtotal: 0,
-      deliveryFee: 0,
-      total: 0
-    }
+    return createEmptyCart()
   }
 
   try {
-    const stored = localStorage.getItem(CART_STORAGE_KEY)
-    if (!stored) {
-      return {
-        items: [],
-        subtotal: 0,
-        deliveryFee: 0,
-        total: 0
-      }
+    const cartData = localStorage.getItem(CART_STORAGE_KEY)
+    if (!cartData) {
+      return createEmptyCart()
     }
 
-    const cart: Cart = JSON.parse(stored)
-    return recalculateCart(cart)
-  } catch (error) {
-    console.error('Error loading cart:', error)
+    const cart = JSON.parse(cartData) as Cart
+    
+    // Validate cart structure and provide defaults for potentially undefined values
     return {
-      items: [],
-      subtotal: 0,
-      deliveryFee: 0,
-      total: 0
+      items: Array.isArray(cart.items) ? cart.items : [],
+      restaurant: cart.restaurant || undefined,
+      subtotal: typeof cart.subtotal === 'number' ? cart.subtotal : 0,
+      deliveryFee: typeof cart.deliveryFee === 'number' ? cart.deliveryFee : 0,
+      total: typeof cart.total === 'number' ? cart.total : 0
     }
+  } catch (error) {
+    console.error('Error parsing cart data:', error)
+    return createEmptyCart()
   }
 }
 
 // Save cart to localStorage
 export function saveCart(cart: Cart): void {
-  if (typeof window === 'undefined') return
+  if (typeof window === 'undefined') {
+    return
+  }
 
   try {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart))
@@ -48,137 +55,166 @@ export function saveCart(cart: Cart): void {
   }
 }
 
+// Calculate cart totals
+export function calculateCartTotals(items: CartItem[], restaurant?: Restaurant): { subtotal: number; deliveryFee: number; total: number } {
+  const subtotal = items.reduce((sum, item) => {
+    const price = item.menuItem?.metadata?.price || 0
+    return sum + (price * item.quantity)
+  }, 0)
+  
+  const deliveryFee = restaurant?.metadata?.delivery_fee || 0
+  const total = subtotal + deliveryFee
+  
+  return { subtotal, deliveryFee, total }
+}
+
 // Add item to cart
 export function addToCart(menuItem: MenuItem, quantity: number = 1, notes?: string): Cart {
   const currentCart = getCart()
   
-  // Check if adding from different restaurant
-  if (currentCart.restaurant && currentCart.restaurant.id !== getRestaurantFromMenuItem(menuItem)?.id) {
-    // Clear cart if switching restaurants
-    const newCart: Cart = {
-      items: [{
-        id: generateCartItemId(),
+  // Check if we're adding from a different restaurant
+  const itemRestaurant = menuItem.metadata?.restaurant
+  const currentRestaurant = currentCart.restaurant
+  
+  if (currentRestaurant && itemRestaurant && typeof itemRestaurant === 'object') {
+    if (currentRestaurant.id !== itemRestaurant.id) {
+      // Different restaurant - clear cart and start fresh
+      const newCart = createEmptyCart()
+      newCart.restaurant = itemRestaurant
+      newCart.items = [{
+        id: menuItem.id,
         menuItem,
         quantity,
         notes
-      }],
-      restaurant: getRestaurantFromMenuItem(menuItem),
-      subtotal: 0,
-      deliveryFee: 0,
-      total: 0
+      }]
+      
+      const totals = calculateCartTotals(newCart.items, newCart.restaurant)
+      newCart.subtotal = totals.subtotal
+      newCart.deliveryFee = totals.deliveryFee
+      newCart.total = totals.total
+      
+      saveCart(newCart)
+      return newCart
     }
-    const calculatedCart = recalculateCart(newCart)
-    saveCart(calculatedCart)
-    return calculatedCart
   }
-
-  // Check if item already exists in cart
-  const existingItemIndex = currentCart.items.findIndex(item => item.menuItem.id === menuItem.id)
+  
+  // Same restaurant or first item - find existing item or add new one
+  const existingItemIndex = currentCart.items.findIndex(item => item.id === menuItem.id)
   
   if (existingItemIndex >= 0) {
-    // Update quantity of existing item
-    currentCart.items[existingItemIndex].quantity += quantity
-    if (notes) {
-      currentCart.items[existingItemIndex].notes = notes
+    // Update existing item with null safety check
+    const existingItem = currentCart.items[existingItemIndex]
+    if (existingItem) {
+      existingItem.quantity += quantity
+      if (notes) {
+        existingItem.notes = notes
+      }
     }
   } else {
-    // Add new item to cart
+    // Add new item
     currentCart.items.push({
-      id: generateCartItemId(),
+      id: menuItem.id,
       menuItem,
       quantity,
       notes
     })
+    
+    // Set restaurant if not already set
+    if (!currentCart.restaurant && itemRestaurant && typeof itemRestaurant === 'object') {
+      currentCart.restaurant = itemRestaurant
+    }
   }
-
-  // Set restaurant if not set
-  if (!currentCart.restaurant) {
-    currentCart.restaurant = getRestaurantFromMenuItem(menuItem)
-  }
-
-  const calculatedCart = recalculateCart(currentCart)
-  saveCart(calculatedCart)
-  return calculatedCart
+  
+  // Recalculate totals
+  const totals = calculateCartTotals(currentCart.items, currentCart.restaurant)
+  currentCart.subtotal = totals.subtotal
+  currentCart.deliveryFee = totals.deliveryFee
+  currentCart.total = totals.total
+  
+  saveCart(currentCart)
+  return currentCart
 }
 
 // Remove item from cart
-export function removeFromCart(cartItemId: string): Cart {
+export function removeFromCart(itemId: string): Cart {
   const currentCart = getCart()
-  currentCart.items = currentCart.items.filter(item => item.id !== cartItemId)
   
-  // Clear restaurant if no items left
+  // Filter out the item with null safety
+  currentCart.items = currentCart.items.filter(item => item && item.id !== itemId)
+  
+  // If cart is empty, reset restaurant
   if (currentCart.items.length === 0) {
     currentCart.restaurant = undefined
   }
-
-  const calculatedCart = recalculateCart(currentCart)
-  saveCart(calculatedCart)
-  return calculatedCart
+  
+  // Recalculate totals
+  const totals = calculateCartTotals(currentCart.items, currentCart.restaurant)
+  currentCart.subtotal = totals.subtotal
+  currentCart.deliveryFee = totals.deliveryFee
+  currentCart.total = totals.total
+  
+  saveCart(currentCart)
+  return currentCart
 }
 
-// Update item quantity in cart
-export function updateCartItemQuantity(cartItemId: string, quantity: number): Cart {
+// Update item quantity
+export function updateItemQuantity(itemId: string, quantity: number): Cart {
   const currentCart = getCart()
-  const itemIndex = currentCart.items.findIndex(item => item.id === cartItemId)
   
+  if (quantity <= 0) {
+    return removeFromCart(itemId)
+  }
+  
+  // Find and update item with null safety
+  const itemIndex = currentCart.items.findIndex(item => item && item.id === itemId)
   if (itemIndex >= 0) {
-    if (quantity <= 0) {
-      // Remove item if quantity is 0 or less
-      return removeFromCart(cartItemId)
-    } else {
-      currentCart.items[itemIndex].quantity = quantity
+    const item = currentCart.items[itemIndex]
+    if (item) {
+      item.quantity = quantity
     }
   }
-
-  const calculatedCart = recalculateCart(currentCart)
-  saveCart(calculatedCart)
-  return calculatedCart
+  
+  // Recalculate totals
+  const totals = calculateCartTotals(currentCart.items, currentCart.restaurant)
+  currentCart.subtotal = totals.subtotal
+  currentCart.deliveryFee = totals.deliveryFee
+  currentCart.total = totals.total
+  
+  saveCart(currentCart)
+  return currentCart
 }
 
 // Clear entire cart
 export function clearCart(): Cart {
-  const emptyCart: Cart = {
-    items: [],
-    subtotal: 0,
-    deliveryFee: 0,
-    total: 0
-  }
+  const emptyCart = createEmptyCart()
   saveCart(emptyCart)
   return emptyCart
 }
 
-// Recalculate cart totals
-function recalculateCart(cart: Cart): Cart {
-  const subtotal = cart.items.reduce((sum, item) => {
-    return sum + (item.menuItem.metadata?.price || 0) * item.quantity
-  }, 0)
-
-  const deliveryFee = cart.restaurant?.metadata?.delivery_fee || 0
-  const total = subtotal + deliveryFee
-
-  return {
-    ...cart,
-    subtotal,
-    deliveryFee,
-    total
-  }
-}
-
-// Get restaurant from menu item
-function getRestaurantFromMenuItem(menuItem: MenuItem): Restaurant | undefined {
-  if (typeof menuItem.metadata?.restaurant === 'object' && menuItem.metadata.restaurant.id) {
-    return menuItem.metadata.restaurant as Restaurant
-  }
-  return undefined
-}
-
-// Generate unique cart item ID
-function generateCartItemId(): string {
-  return `cart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-}
-
 // Get cart item count
-export function getCartItemCount(): number {
-  const cart = getCart()
-  return cart.items.reduce((sum, item) => sum + item.quantity, 0)
+export function getCartItemCount(cart?: Cart): number {
+  const currentCart = cart || getCart()
+  return currentCart.items.reduce((count, item) => {
+    // Add null safety check for item
+    return count + (item?.quantity || 0)
+  }, 0)
+}
+
+// Get cart total
+export function getCartTotal(cart?: Cart): number {
+  const currentCart = cart || getCart()
+  return currentCart.total
+}
+
+// Check if item is in cart
+export function isItemInCart(itemId: string, cart?: Cart): boolean {
+  const currentCart = cart || getCart()
+  return currentCart.items.some(item => item && item.id === itemId)
+}
+
+// Get item quantity in cart
+export function getItemQuantityInCart(itemId: string, cart?: Cart): number {
+  const currentCart = cart || getCart()
+  const item = currentCart.items.find(item => item && item.id === itemId)
+  return item?.quantity || 0
 }
