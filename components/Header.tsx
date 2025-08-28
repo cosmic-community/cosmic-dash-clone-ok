@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { Utensils } from 'lucide-react'
 import CartButton from './CartButton'
 
 export default function Header() {
@@ -8,8 +9,9 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-white shadow-sm border-b">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="text-2xl font-bold text-primary">
-            FoodDash
+          <Link href="/" className="flex items-center space-x-2 text-2xl font-bold text-primary">
+            <Utensils className="w-8 h-8" />
+            <span>FoodDash</span>
           </Link>
           
           <nav className="hidden md:flex items-center space-x-8">
