@@ -27,8 +27,6 @@ export default function CartButton() {
     }
   }, [])
 
-  if (itemCount === 0) return null
-
   return (
     <Link href="/cart" className="relative">
       <button className="btn-primary relative">
