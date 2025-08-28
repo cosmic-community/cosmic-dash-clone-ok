@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Restaurant } from '@/types'
+import { Restaurant, CuisineType } from '@/types'
 
 interface CuisineFilterProps {
   restaurants: Restaurant[]
@@ -17,7 +17,7 @@ export default function CuisineFilter({ restaurants, selectedCuisine }: CuisineF
     new Set(
       restaurants
         .map(restaurant => restaurant.metadata?.cuisine_type?.value)
-        .filter(Boolean)
+        .filter((value): value is CuisineType => Boolean(value))
     )
   ).sort()
 
@@ -50,7 +50,7 @@ export default function CuisineFilter({ restaurants, selectedCuisine }: CuisineF
         {cuisineTypes.map((cuisine) => (
           <button
             key={cuisine}
-            onClick={() => handleCuisineChange(cuisine)}
+            onClick={() => handleCuisineChange(cuisine as string)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
               selectedCuisine?.toLowerCase() === cuisine?.toLowerCase()
                 ? 'bg-primary text-white'
@@ -65,7 +65,7 @@ export default function CuisineFilter({ restaurants, selectedCuisine }: CuisineF
       {selectedCuisine && (
         <div className="text-center mt-4">
           <p className="text-gray-600">
-            Showing {cuisineTypes.includes(selectedCuisine) ? 
+            Showing {cuisineTypes.some(cuisine => cuisine.toLowerCase() === selectedCuisine.toLowerCase()) ? 
               restaurants.filter(r => r.metadata?.cuisine_type?.value?.toLowerCase() === selectedCuisine.toLowerCase()).length 
               : 0
             } {selectedCuisine} restaurants
