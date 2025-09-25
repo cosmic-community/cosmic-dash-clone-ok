@@ -1,16 +1,18 @@
 import { createBucketClient } from '@cosmicjs/sdk'
+import type { BucketConfig } from '@cosmicjs/sdk'
 import { Restaurant, MenuItem, Order } from '@/types'
 
 const bucketSlug = process.env.COSMIC_BUCKET_SLUG as string | undefined
 const readKey = process.env.COSMIC_READ_KEY as string | undefined
 const writeKey = process.env.COSMIC_WRITE_KEY as string | undefined
 
-const clientOptions: Record<string, string> = {}
-if (bucketSlug) clientOptions.bucketSlug = bucketSlug
-if (readKey) clientOptions.readKey = readKey
-if (writeKey) clientOptions.writeKey = writeKey
+const baseConfig: Partial<BucketConfig> = {
+  bucketSlug: bucketSlug || ''
+}
+if (readKey) baseConfig.readKey = readKey
+if (writeKey) baseConfig.writeKey = writeKey
 
-export const cosmic = createBucketClient(clientOptions)
+export const cosmic = createBucketClient(baseConfig as BucketConfig)
 
 // Map display values to select-dropdown keys configured in Cosmic
 const ORDER_STATUS_KEY_BY_VALUE: Record<string, string> = {
