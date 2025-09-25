@@ -1,11 +1,34 @@
 import { createBucketClient } from '@cosmicjs/sdk'
 import { Restaurant, MenuItem, Order } from '@/types'
 
-export const cosmic = createBucketClient({
-  bucketSlug: process.env.COSMIC_BUCKET_SLUG as string,
-  readKey: process.env.COSMIC_READ_KEY as string,
-  writeKey: process.env.COSMIC_WRITE_KEY as string,
-})
+const bucketSlug = process.env.COSMIC_BUCKET_SLUG as string | undefined
+const readKey = process.env.COSMIC_READ_KEY as string | undefined
+const writeKey = process.env.COSMIC_WRITE_KEY as string | undefined
+
+const clientOptions: Record<string, string> = {}
+if (bucketSlug) clientOptions.bucketSlug = bucketSlug
+if (readKey) clientOptions.readKey = readKey
+if (writeKey) clientOptions.writeKey = writeKey
+
+export const cosmic = createBucketClient(clientOptions)
+
+// Map display values to select-dropdown keys configured in Cosmic
+const ORDER_STATUS_KEY_BY_VALUE: Record<string, string> = {
+  'Order Placed': 'placed',
+  'Confirmed': 'confirmed',
+  'Preparing': 'preparing',
+  'Ready for Pickup': 'ready-for-pickup',
+  'Out for Delivery': 'out-for-delivery',
+  'Delivered': 'delivered'
+}
+
+function getOrderStatusMetadata(statusDisplayValue: string): { key: string; value: string } {
+  const key = ORDER_STATUS_KEY_BY_VALUE[statusDisplayValue]
+  if (!key) {
+    throw new Error(`Unknown order status '${statusDisplayValue}'. Expected one of: ${Object.keys(ORDER_STATUS_KEY_BY_VALUE).join(', ')}`)
+  }
+  return { key, value: statusDisplayValue }
+}
 
 // Helper for error handling
 function hasStatus(error: unknown): error is { status: number } {
@@ -179,6 +202,10 @@ export async function createOrder(orderData: {
   order_date?: string;
 }): Promise<Order> {
   try {
+    if (!writeKey) {
+      throw new Error('COSMIC_WRITE_KEY is missing. Set it in your environment variables.')
+    }
+
     const response = await cosmic.objects.insertOne({
       type: 'orders',
       title: `Order ${orderData.order_number}`,
@@ -190,7 +217,7 @@ export async function createOrder(orderData: {
         restaurant: orderData.restaurant,
         items_ordered: orderData.items_ordered,
         total_amount: orderData.total_amount,
-        status: orderData.status,
+        status: getOrderStatusMetadata(orderData.status),
         order_date: orderData.order_date || new Date().toISOString().split('T')[0]
       }
     })
@@ -198,22 +225,26 @@ export async function createOrder(orderData: {
     return response.object as Order
   } catch (error) {
     console.error('Error creating order:', error)
-    throw new Error('Failed to create order')
+    throw error
   }
 }
 
 // Update order status
 export async function updateOrderStatus(orderId: string, status: string): Promise<Order> {
   try {
+    if (!writeKey) {
+      throw new Error('COSMIC_WRITE_KEY is missing. Set it in your environment variables.')
+    }
+
     const response = await cosmic.objects.updateOne(orderId, {
       metadata: {
-        status: status
+        status: getOrderStatusMetadata(status)
       }
     })
     
     return response.object as Order
   } catch (error) {
     console.error('Error updating order status:', error)
-    throw new Error('Failed to update order status')
+    throw error
   }
 }
