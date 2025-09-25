@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import { Inter } from 'next/font/google'
-import './globals.css'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import CosmicBadge from '@/components/CosmicBadge'
@@ -8,11 +8,8 @@ import CosmicBadge from '@/components/CosmicBadge'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'FoodDash - Food Delivery App',
-  description: 'Order food from your favorite restaurants',
-  icons: {
-    icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍔</text></svg>'
-  }
+  title: 'Your App',
+  description: 'Description here',
 }
 
 export default function RootLayout({
@@ -20,8 +17,9 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Access environment variable on server side
+  // Server-side env access is fine here
   const bucketSlug = process.env.COSMIC_BUCKET_SLUG as string
+  const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-T2VMZ33P' // fallback if you want
 
   return (
     <html lang="en">
