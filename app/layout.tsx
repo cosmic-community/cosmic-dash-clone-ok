@@ -1,3 +1,4 @@
+import './globals.css'                      // <-- put this back
 import type { Metadata } from 'next'
 import Script from 'next/script'
 import { Inter } from 'next/font/google'
@@ -12,19 +13,24 @@ export const metadata: Metadata = {
   description: 'Description here',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  // Server-side env access is fine here
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   const bucketSlug = process.env.COSMIC_BUCKET_SLUG as string
-  const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-T2VMZ33P' // fallback if you want
+  const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-T2VMZ33P'
 
   return (
     <html lang="en">
-      <head>
-        {/* GTM bootstrap (after hydration so it doesn't block) */}
+      <body className={`${inter.className} flex flex-col min-h-screen`}>
+        {/* GTM noscript (safe at top of body) */}
+        <noscript>
+          <iframe
+            src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
+            height="0"
+            width="0"
+            style={{ display: 'none', visibility: 'hidden' }}
+          />
+        </noscript>
+
+        {/* GTM bootstrap (loads after hydration) */}
         <Script id="gtm-init" strategy="afterInteractive">
           {`
             (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -34,17 +40,6 @@ export default function RootLayout({
             })(window,document,'script','dataLayer','${GTM_ID}');
           `}
         </Script>
-      </head>
-      <body className={`${inter.className} flex flex-col min-h-screen`}>
-        {/* GTM <noscript> for no-JS users (safe in body) */}
-        <noscript>
-          <iframe
-            src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
-            height="0"
-            width="0"
-            style={{ display: 'none', visibility: 'hidden' }}
-          />
-        </noscript>
 
         <Header />
         <main className="flex-grow">{children}</main>
