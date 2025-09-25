@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Cart } from '@/types'
 import { getCart, clearCart } from '@/lib/cart'
-import { createOrder } from '@/lib/cosmic'
+// Note: Do not import server-side Cosmic client here; call server API instead
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -51,16 +51,24 @@ export default function CheckoutPage() {
         throw new Error('Restaurant information is missing')
       }
 
-      await createOrder({
-        order_number: orderNumber,
-        customer_name: formData.customer_name,
-        customer_phone: formData.customer_phone,
-        delivery_address: formData.delivery_address,
-        restaurant: restaurantId,
-        items_ordered: itemIds,
-        total_amount: cart.total,
-        status: 'Order Placed'
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_number: orderNumber,
+          customer_name: formData.customer_name,
+          customer_phone: formData.customer_phone,
+          delivery_address: formData.delivery_address,
+          restaurant: restaurantId,
+          items_ordered: itemIds,
+          total_amount: cart.total,
+          status: 'Order Placed'
+        })
       })
+
+      if (!res.ok) {
+        throw new Error('Failed to create order')
+      }
 
       // Clear the cart
       clearCart()
